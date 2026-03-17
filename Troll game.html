@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>No Internet</title>
+
+<style>
+body{
+margin:0;
+font-family: Arial;
+background:white;
+text-align:center;
+}
+
+#offline{
+margin-top:100px;
+}
+
+#frog{
+font-size:50px;
+cursor:pointer;
+}
+
+canvas{
+display:none;
+background:#f2f2f2;
+margin-top:20px;
+border-top:2px solid #ccc;
+}
+</style>
+</head>
+
+<body>
+
+<div id="offline">
+<h1>❌ No Internet</h1>
+<p>Try checking your connection.</p>
+<p style="color:gray; font-size:14px;">
+Meanwhile you wait for your internet connection to restore, tap on the frog for a surprise.
+</p>
+<div id="frog">🐸</div>
+</div>
+
+<canvas id="game" width="600" height="200"></canvas>
+
+<script>
+let canvas=document.getElementById("game");
+let ctx=canvas.getContext("2d");
+
+let gameStarted=false;
+let gameOverState=false;
+let fallingInHole=false;
+
+// 🎵 sounds
+let bgMusic = new Audio("https://www.myinstants.com/media/sounds/mario-theme-song.mp3");
+let gameOverSound = new Audio("https://www.myinstants.com/media/sounds/windows-error.mp3");
+let jumpSound = new Audio("https://www.myinstants.com/media/sounds/jump.mp3");
+
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
+
+// 📈 score
+let score=0;
+let highScore=localStorage.getItem("highScore") || 0;
+
+// player
+let player={
+x:50,
+y:150,
+w:30,
+h:30,
+vy:0,
+jumping:false
+};
+
+let gravity=0.8;
+let obstacles=[];
+
+// start game
+document.getElementById("frog").onclick=(e)=>{
+e.stopPropagation();
+startGame();
+};
+
+function startGame(){
+if(gameStarted) return;
+gameStarted=true;
+
+document.getElementById("offline").style.display="none";
+canvas.style.display="block";
+
+bgMusic.play();
+
+spawnObstacle();
+gameLoop();
+}
+
+// controls
+document.addEventListener("keydown",(e)=>{
+if(e.code==="ArrowUp" && !player.jumping && !gameOverState && !fallingInHole){
+player.vy=-12;
+player.jumping=true;
+
+jumpSound.currentTime = 0;
+jumpSound.play();
+}
+});
+
+// spawn obstacles
+function spawnObstacle(){
+if(gameOverState) return;
+
+let type=Math.random()>0.5?"pipe":"hole";
+
+if(type==="pipe"){
+obstacles.push({
+type:"pipe",
+x:600,
+y:120,
+w:30,
+h:80
+});
+}else{
+obstacles.push({
+type:"hole",
+x:600,
+y:170,
+w:60,
+h:30
+});
+}
+
+setTimeout(spawnObstacle,1500);
+}
+
+// game loop
+function gameLoop(){
+if(gameOverState) return;
+
+ctx.clearRect(0,0,600,200);
+
+// 🌱 ground
+ctx.fillStyle="#888";
+ctx.fillRect(0,180,600,5);
+
+// 📈 score
+score++;
+if(score > highScore){
+highScore = score;
+localStorage.setItem("highScore", highScore);
+}
+
+// 🧾 draw score
+ctx.fillStyle="black";
+ctx.font="16px Arial";
+ctx.fillText("Score: " + score, 10, 20);
+ctx.fillText("High: " + highScore, 10, 40);
+
+// physics
+player.y+=player.vy;
+player.vy+=gravity;
+
+// stop at ground ONLY if not falling
+if(!fallingInHole){
+if(player.y>=150){
+player.y=150;
+player.jumping=false;
+}
+}
+
+// 🐸 draw frog (rotate if falling)
+ctx.font="30px Arial";
+if(fallingInHole){
+ctx.save();
+ctx.translate(player.x, player.y);
+ctx.rotate(Math.PI/4);
+ctx.fillText("🐸", 0, 0);
+ctx.restore();
+}else{
+ctx.fillText("🐸", player.x, player.y+25);
+}
+
+// obstacles
+for(let i=0;i<obstacles.length;i++){
+let o=obstacles[i];
+o.x-=5;
+
+// draw pipe
+if(o.type==="pipe"){
+ctx.fillStyle="green";
+ctx.fillRect(o.x,o.y,o.w,o.h);
+}
+
+// draw hole
+if(o.type==="hole"){
+ctx.fillStyle="black";
+ctx.fillRect(o.x,180,o.w,20);
+}
+
+// pipe collision
+if(o.type==="pipe"){
+if(player.x < o.x + o.w &&
+player.x + player.w > o.x &&
+player.y + player.h > o.y){
+endGame();
+}
+}
+
+// 🕳️ hole collision → start falling
+if(o.type==="hole"){
+let frogCenter = player.x + player.w/2;
+
+if(
+frogCenter > o.x &&
+frogCenter < o.x + o.w &&
+player.y >= 150 &&
+!fallingInHole
+){
+fallingInHole = true;
+}
+}
+
+// remove off screen
+if(o.x < -60){
+obstacles.splice(i,1);
+i--;
+}
+}
+
+// 🕳️ falling end
+if(fallingInHole && player.y > 220){
+endGame();
+}
+
+requestAnimationFrame(gameLoop);
+}
+
+// 💀 game over
+function endGame(){
+if(gameOverState) return;
+
+gameOverState=true;
+
+// stop music
+bgMusic.pause();
+bgMusic.currentTime = 0;
+
+// play sound
+gameOverSound.play();
+
+setTimeout(()=>{
+alert("Game Over 😭\nScore: " + score + "\nHigh Score: " + highScore);
+location.reload();
+},500);
+}
+</script>
+
+</body>
+</html>
