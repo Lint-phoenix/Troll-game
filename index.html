@@ -3,6 +3,8 @@
 <head>
 <title>No Internet</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{
 margin:0;
@@ -25,6 +27,8 @@ display:none;
 background:#f2f2f2;
 margin-top:20px;
 border-top:2px solid #ccc;
+width:100%;
+max-width:600px;
 }
 </style>
 </head>
@@ -34,9 +38,11 @@ border-top:2px solid #ccc;
 <div id="offline">
 <h1>❌ No Internet</h1>
 <p>Try checking your connection.</p>
-<p style="color:gray; font-size:14px;">
-Meanwhile you wait for your internet connection to restore, tap on the frog for a surprise.
+
+<p style="color:#777; font-size:13px;">
+Meanwhile, you can tap the frog for a surprise.
 </p>
+
 <div id="frog">🐸</div>
 </div>
 
@@ -94,16 +100,35 @@ spawnObstacle();
 gameLoop();
 }
 
-// controls
+// ⌨️ keyboard control
 document.addEventListener("keydown",(e)=>{
 if(e.code==="ArrowUp" && !player.jumping && !gameOverState && !fallingInHole){
+jump();
+}
+});
+
+// 📱 touch control
+canvas.addEventListener("touchstart", ()=>{
+if(!player.jumping && !gameOverState && !fallingInHole){
+jump();
+}
+});
+
+// 🖱️ mouse click control
+canvas.addEventListener("click", ()=>{
+if(!player.jumping && !gameOverState && !fallingInHole){
+jump();
+}
+});
+
+// jump function
+function jump(){
 player.vy=-12;
 player.jumping=true;
 
-jumpSound.currentTime = 0;
+jumpSound.currentTime=0;
 jumpSound.play();
 }
-});
 
 // spawn obstacles
 function spawnObstacle(){
@@ -149,7 +174,7 @@ highScore = score;
 localStorage.setItem("highScore", highScore);
 }
 
-// 🧾 draw score
+// 🧾 score display
 ctx.fillStyle="black";
 ctx.font="16px Arial";
 ctx.fillText("Score: " + score, 10, 20);
@@ -159,7 +184,6 @@ ctx.fillText("High: " + highScore, 10, 40);
 player.y+=player.vy;
 player.vy+=gravity;
 
-// stop at ground ONLY if not falling
 if(!fallingInHole){
 if(player.y>=150){
 player.y=150;
@@ -167,7 +191,7 @@ player.jumping=false;
 }
 }
 
-// 🐸 draw frog (rotate if falling)
+// 🐸 frog
 ctx.font="30px Arial";
 if(fallingInHole){
 ctx.save();
@@ -184,13 +208,13 @@ for(let i=0;i<obstacles.length;i++){
 let o=obstacles[i];
 o.x-=5;
 
-// draw pipe
+// pipe
 if(o.type==="pipe"){
 ctx.fillStyle="green";
 ctx.fillRect(o.x,o.y,o.w,o.h);
 }
 
-// draw hole
+// hole
 if(o.type==="hole"){
 ctx.fillStyle="black";
 ctx.fillRect(o.x,180,o.w,20);
@@ -205,7 +229,7 @@ endGame();
 }
 }
 
-// 🕳️ hole collision → start falling
+// hole → fall
 if(o.type==="hole"){
 let frogCenter = player.x + player.w/2;
 
@@ -215,18 +239,18 @@ frogCenter < o.x + o.w &&
 player.y >= 150 &&
 !fallingInHole
 ){
-fallingInHole = true;
+fallingInHole=true;
 }
 }
 
-// remove off screen
+// remove
 if(o.x < -60){
 obstacles.splice(i,1);
 i--;
 }
 }
 
-// 🕳️ falling end
+// falling end
 if(fallingInHole && player.y > 220){
 endGame();
 }
@@ -234,17 +258,15 @@ endGame();
 requestAnimationFrame(gameLoop);
 }
 
-// 💀 game over
+// game over
 function endGame(){
 if(gameOverState) return;
 
 gameOverState=true;
 
-// stop music
 bgMusic.pause();
-bgMusic.currentTime = 0;
+bgMusic.currentTime=0;
 
-// play sound
 gameOverSound.play();
 
 setTimeout(()=>{
